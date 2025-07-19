@@ -16,8 +16,7 @@ jobs:
         sudo apt update
         sudo apt install -y xfce4 xfce4-goodies xrdp
         echo xfce4-session > ~/.xsession
-        sudo cp ~/.xsession /home/shahriahmahin/
-        sudo chown shahriahmahin:shahriahmahin /home/shahriahmahin/.xsession
+        sudo chown shahriahmahin:shahriahmahin ~/.xsession
 
         # Start xrdp services manually (no systemd)
         nohup sudo xrdp-sesman &>/dev/null &
