@@ -11,32 +11,33 @@ jobs:
     - name: Check out the repository
       uses: actions/checkout@v2
 
-    - name: Install XRDP & XFCE
+    - name: Download and Install Playit
       run: |
-        sudo apt update
-        sudo apt install -y xfce4 xfce4-goodies xrdp
-        echo xfce4-session > ~/.xsession
-        sudo cp ~/.xsession /home/runneradmin/
-        sudo chown runneradmin:runneradmin /home/runneradmin/.xsession
+        Invoke-WebRequest -Uri "https://github.com/playit-cloud/playit-agent/releases/download/v0.15.26/playit-windows-x86_64-signed.exe" -OutFile "$env:USERPROFILE\playit.exe"
+        Start-Sleep -Seconds 25  # Give some time for the download to complete
 
-        # Try to start xrdp via init.d or fallback to direct start
-        if [ -f /etc/init.d/xrdp ]; then
-          sudo /etc/init.d/xrdp start || echo "Failed to start xrdp via init.d"
-        else
-          sudo xrdp || echo "Failed to start xrdp directly"
-        fi
+        
+    # Default, optional.
+    - name: Enable TS
+      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0
+    - run: Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+    - run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+    - run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "p@ssw0rd!" -Force)
 
-    - name: Create RDP user
+    - name: Start Playit and Set Up RDP Tunnel
+      env:
+        PLAYIT_AUTH_KEY: ${{ secrets.PL }} 
       run: |
-        sudo useradd -m afnex || echo "User afnex may already exist"
-        echo "afnex:p@ssw0rd!" | sudo chpasswd
-        sudo usermod -aG sudo afnex
+        Start-Process -FilePath "$env:USERPROFILE\playit.exe" -ArgumentList "--secret $env:PLAYIT_AUTH_KEY" -NoNewWindow -Wait
+        Start-Process -FilePath "$env:USERPROFILE\playit.exe" -NoNewWindow
 
-    - name: Download and start Playit
+        
+    # Prevent workflow to stop
+    - name: Keep the GitHub Action Runner Alive
       run: |
-        mkdir -p ~/.config/playit_gg
-        cd ~/.config/playit_gg
-        wget https://github.com/playit-cloud/playit-agent/releases/download/v0.15.26/playit-linux-amd64
-        chmod +x playit-linux-amd64
-        mv playit-linux-amd64 playit
-        nohup ./playit &>/dev/null &
+          Start-Sleep -Seconds 604800  # Adjust the duration based on your needs
+
+
+
+
+        
