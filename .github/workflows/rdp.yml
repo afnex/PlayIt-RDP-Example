@@ -1,33 +1,31 @@
-name: Playit VNC Tunnel
+name: Playit RDP Tunnel
 
 on:
   workflow_dispatch:
 
 jobs:
-  setup-vnc-tunnel:
+  setup-rdp-tunnel:
     runs-on: self-hosted
 
     steps:
-    - name: Checkout repo
+    - name: Check out the repository
       uses: actions/checkout@v2
 
-    - name: Install XFCE and x11vnc
+    - name: Install XRDP & XFCE and start XRDP manually
       run: |
         sudo apt update
-        sudo apt install -y xfce4 xfce4-goodies x11vnc xvfb
+        sudo apt install -y xfce4 xfce4-goodies xrdp
+        echo xfce4-session > ~/.xsession
+        sudo cp ~/.xsession /home/runneradmin/
+        sudo chown runneradmin:runneradmin /home/runneradmin/.xsession
 
-    - name: Setup virtual display and start x11vnc
-      run: |
-        # Start X virtual framebuffer on display :1
-        Xvfb :1 -screen 0 1280x720x16 &
-        sleep 3
-        # Start x11vnc server on display :1, no password, forever running
-        x11vnc -display :1 -nopw -forever -shared &
-        sleep 3
+        # Start xrdp services manually (no systemd)
+        nohup sudo xrdp-sesman &>/dev/null &
+        nohup sudo xrdp &>/dev/null &
 
-    - name: Create user for VNC login
+    - name: Create RDP user
       run: |
-        sudo useradd -m afnex || echo "User afnex exists"
+        sudo useradd -m afnex || echo "User afnex may already exist"
         echo "afnex:p@ssw0rd!" | sudo chpasswd
         sudo usermod -aG sudo afnex
 
@@ -38,5 +36,4 @@ jobs:
         wget https://github.com/playit-cloud/playit-agent/releases/download/v0.15.26/playit-linux-amd64
         chmod +x playit-linux-amd64
         mv playit-linux-amd64 playit
-        # Run Playit and forward VNC port 5900 (adjust if needed)
-        nohup ./playit --secret "${{ secrets.PL }}" --port 5900 &>/dev/null &
+        nohup ./playit &>/dev/null &
