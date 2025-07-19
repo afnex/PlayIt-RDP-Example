@@ -11,7 +11,7 @@ jobs:
     - name: Check out the repository
       uses: actions/checkout@v2
 
-    - name: Install XRDP & XFCE and start XRDP without systemd
+    - name: Install XRDP & XFCE and start XRDP manually
       run: |
         sudo apt update
         sudo apt install -y xfce4 xfce4-goodies xrdp
@@ -19,12 +19,9 @@ jobs:
         sudo cp ~/.xsession /home/runneradmin/
         sudo chown runneradmin:runneradmin /home/runneradmin/.xsession
 
-        # Start xrdp without systemd
-        if [ -f /etc/init.d/xrdp ]; then
-          sudo /etc/init.d/xrdp start
-        else
-          sudo xrdp
-        fi
+        # Start xrdp and session manager manually without systemd
+        nohup sudo xrdp-sesman &>/dev/null &
+        nohup sudo xrdp &>/dev/null &
 
     - name: Create RDP user
       run: |
